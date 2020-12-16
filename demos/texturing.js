@@ -13,8 +13,9 @@
 import PicoGL from "../node_modules/picogl/build/module/picogl.js";
 import {mat4, vec3} from "../node_modules/gl-matrix/esm/index.js";
 
-import {positions, normals, uvs, indices} from "../blender/cube.js"
+import {positions, normals, uvs, indices} from "../blender/sphere.js"
 
+//SKYBOX IS A BOX LAYERED WITH TEXTURE TO MAKE IT LOOK LIKE AN ENVIRONMENT
 const skyboxPositions = new Float32Array([
     -1.0, 1.0, 1.0,
     1.0, 1.0, 1.0,
@@ -109,23 +110,23 @@ let vertexArray = app.createVertexArray()
 let skyboxArray = app.createVertexArray()
     .vertexAttributeBuffer(0, app.createVertexBuffer(PicoGL.FLOAT, 3, skyboxPositions))
     .indexBuffer(app.createIndexBuffer(PicoGL.UNSIGNED_SHORT, 3, skyboxIndices));
-
-let projMatrix = mat4.create();
-let viewMatrix = mat4.create();
-let viewProjMatrix = mat4.create();
-let modelMatrix = mat4.create();
-let modelViewMatrix = mat4.create();
-let modelViewProjectionMatrix = mat4.create();
-let rotateXMatrix = mat4.create();
-let rotateYMatrix = mat4.create();
-let skyboxViewProjectionInverse = mat4.create();
-
-async function loadTexture(fileName) {
-    return await createImageBitmap(await (await fetch("images/" + fileName)).blob());
-}
+    
+    let projMatrix = mat4.create();
+    let viewMatrix = mat4.create();
+    let viewProjMatrix = mat4.create();
+    let modelMatrix = mat4.create();
+    let modelViewMatrix = mat4.create();
+    let modelViewProjectionMatrix = mat4.create();
+    let rotateXMatrix = mat4.create();
+    let rotateYMatrix = mat4.create();
+    let skyboxViewProjectionInverse = mat4.create();
+    
+    async function loadTexture(fileName) {
+        return await createImageBitmap(await (await fetch("images/" + fileName)).blob());
+    }
 
 (async () => {
-    const tex = await loadTexture("Ex1.jpg");
+    const tex = await loadTexture("MoonTexture.jpg");
     let drawCall = app.createDrawCall(program, vertexArray)
         .texture("tex", app.createTexture2D(tex, tex.width, tex.height, {
             magFilter: PicoGL.LINEAR,
@@ -145,40 +146,40 @@ async function loadTexture(fileName) {
             posZ: await loadTexture("px.png")
         }));
 
-    let startTime = new Date().getTime() / 1000;
+        let startTime = new Date().getTime() / 1000;
 
 
-    function draw() {
-        let time = new Date().getTime() / 1000 - startTime;
-
-        mat4.perspective(projMatrix, Math.PI / 2, app.width / app.height, 0.1, 100.0);
-        let camPos = vec3.rotateY(vec3.create(), vec3.fromValues(0, 0.5, 2), vec3.fromValues(0, 0, 0), time * 0.05);
-        mat4.lookAt(viewMatrix, camPos, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
-        mat4.multiply(viewProjMatrix, projMatrix, viewMatrix);
-
-        mat4.fromXRotation(rotateXMatrix, time * 0.1136);
-        mat4.fromZRotation(rotateYMatrix, time * 0.2235);
-        mat4.multiply(modelMatrix, rotateXMatrix, rotateYMatrix);
-
-        mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
-        mat4.multiply(modelViewProjectionMatrix, viewProjMatrix, modelMatrix);
-
-        let skyboxViewProjectionMatrix = mat4.create();
-        mat4.mul(skyboxViewProjectionMatrix, projMatrix, viewMatrix);
-        mat4.invert(skyboxViewProjectionInverse, skyboxViewProjectionMatrix);
-
-        app.clear();
-
-        app.disable(PicoGL.DEPTH_TEST);
-        skyboxDrawCall.uniform("viewProjectionInverse", skyboxViewProjectionInverse);
-        skyboxDrawCall.draw();
-
-        app.enable(PicoGL.DEPTH_TEST);
-        drawCall.uniform("modelViewProjectionMatrix", modelViewProjectionMatrix);
-        drawCall.draw();
-
+        function draw() {
+            let time = new Date().getTime() / 1000 - startTime;
+    
+            mat4.perspective(projMatrix, Math.PI / 2, app.width / app.height, 0.1, 100.0);
+            let camPos = vec3.rotateY(vec3.create(), vec3.fromValues(0, 1.5, 2), vec3.fromValues(2, 1, 3), time * 0.5);
+            mat4.lookAt(viewMatrix, camPos, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
+            mat4.multiply(viewProjMatrix, projMatrix, viewMatrix);
+    
+            mat4.fromXRotation(rotateXMatrix, time * 0.1136);
+            mat4.fromZRotation(rotateYMatrix, time * 0.2235);
+            mat4.multiply(modelMatrix, rotateXMatrix, rotateYMatrix);
+    
+            mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
+            mat4.multiply(modelViewProjectionMatrix, viewProjMatrix, modelMatrix);
+    
+            let skyboxViewProjectionMatrix = mat4.create();
+            mat4.mul(skyboxViewProjectionMatrix, projMatrix, viewMatrix);
+            mat4.invert(skyboxViewProjectionInverse, skyboxViewProjectionMatrix);
+    
+            app.clear();
+    
+            app.disable(PicoGL.DEPTH_TEST);
+            skyboxDrawCall.uniform("viewProjectionInverse", skyboxViewProjectionInverse);
+            skyboxDrawCall.draw();
+    
+            app.enable(PicoGL.DEPTH_TEST);
+            drawCall.uniform("modelViewProjectionMatrix", modelViewProjectionMatrix);
+            drawCall.draw();
+    
+            requestAnimationFrame(draw);
+        }
+    
         requestAnimationFrame(draw);
-    }
-
-    requestAnimationFrame(draw);
-})();
+    })();
